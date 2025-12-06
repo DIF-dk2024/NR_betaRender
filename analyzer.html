@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Numerical Research — Interactive v5 (multi‑brush + controls)</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root{--bg:#0b0b0c;--card:#141417;--ink:#e9eaee;--muted:#a2a6b0;--accent:#7dd3fc}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{max-width:1320px;margin:20px auto;padding:0 16px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  h1{margin:0;font-size:clamp(18px,3vw,24px)}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input[type=file]{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .card{background:var(--card);border:1px solid #1f2024;border-radius:14px;padding:12px}
+  .panel{display:grid;gap:8px}
+  .panel .panel-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .panel .panel-controls label{font-size:12px;color:var(--muted)}
+  .panel .panel-controls input{width:110px;background:#0f0f12;border:1px solid #2a2b30;border-radius:10px;color:var(--ink);padding:6px 8px}
+  .panel .panel-controls button{background:#0f0f12;border:1px solid #2a2b30;border-radius:10px;color:var(--ink);padding:6px 10px;cursor:pointer}
+  .panel .panel-controls button:hover{border-color:#3b3b42}
+  .chart{width:100%;height:360px}
+  .stats{font-size:12px;color:var(--muted)}
+  .stats b{color:var(--ink)}
+  #links{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:6px}
+  a{color:var(--accent)}
+  #log{font-size:12px;color:var(--muted);white-space:pre-wrap;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Numerical Research — Interactive v5</h1>
+    <div class="controls">
+      <input id="file" type="file" accept=".csv,.txt" />
+      <button id="loadSample">Load sample</button>
+      <button id="clearAll">Clear all</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- PRICE -->
+    <div class="card panel">
+      <div class="panel-controls" data-key="price">
+        <strong>Price (₸)</strong>
+        <label>Bins</label><input id="bins_price" type="number" min="5" max="200" step="1" value="40" />
+        <label>Min</label><input id="min_price" type="number" placeholder="auto" />
+        <label>Max</label><input id="max_price" type="number" placeholder="auto" />
+        <button data-apply="price">Apply</button>
+        <button data-reset="price" title="Reset controls and brush for Price">Reset</button>
+      </div>
+      <div id="chart_price" class="chart"></div>
+      <div id="stats_price" class="stats"></div>
+    </div>
+
+    <!-- PPM2 -->
+    <div class="card panel">
+      <div class="panel-controls" data-key="ppm2">
+        <strong>Price per m² (₸/m²)</strong>
+        <label>Bins</label><input id="bins_ppm2" type="number" min="5" max="200" step="1" value="40" />
+        <label>Min</label><input id="min_ppm2" type="number" placeholder="auto" />
+        <label>Max</label><input id="max_ppm2" type="number" placeholder="auto" />
+        <button data-apply="ppm2">Apply</button>
+        <button data-reset="ppm2" title="Reset controls and brush for ₸/m²">Reset</button>
+      </div>
+      <div id="chart_ppm2" class="chart"></div>
+      <div id="stats_ppm2" class="stats"></div>
+    </div>
+
+    <!-- AREA -->
+    <div class="card panel">
+      <div class="panel-controls" data-key="area">
+        <strong>Area (m²)</strong>
+        <label>Bins</label><input id="bins_area" type="number" min="5" max="200" step="1" value="40" />
+        <label>Min</label><input id="min_area" type="number" placeholder="auto" />
+        <label>Max</label><input id="max_area" type="number" placeholder="auto" />
+        <button data-apply="area">Apply</button>
+        <button data-reset="area" title="Reset controls and brush for Area">Reset</button>
+      </div>
+      <div id="chart_area" class="chart"></div>
+      <div id="stats_area" class="stats"></div>
+    </div>
+
+    <!-- FLOOR -->
+    <div class="card panel">
+      <div class="panel-controls" data-key="floor">
+        <strong>Floor (current)</strong>
+        <label>Bins</label><input id="bins_floor" type="number" min="1" max="100" step="1" value="30" />
+        <label>Min</label><input id="min_floor" type="number" placeholder="auto" />
+        <label>Max</label><input id="max_floor" type="number" placeholder="auto" />
+        <button data-apply="floor">Apply</button>
+        <button data-reset="floor" title="Reset controls and brush for Floor">Reset</button>
+      </div>
+      <div id="chart_floor" class="chart"></div>
+      <div id="stats_floor" class="stats"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:6px 0">Selected links (intersection of all active selections/filters)</h3>
+    <div id="links"></div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const charts = {price:'chart_price', ppm2:'chart_ppm2', area:'chart_area', floor:'chart_floor'};
+  const statsDiv = {price:'stats_price', ppm2:'stats_ppm2', area:'stats_area', floor:'stats_floor'};
+  const fileInput = document.getElementById('file');
+  const loadSampleBtn = document.getElementById('loadSample');
+  const clearAllBtn = document.getElementById('clearAll');
+
+  let rows = []; // {price, area, ppm2, floor, url}
+  // Controls (min/max/nbins) for each metric
+  const filters = {price:{min:null,max:null,nbins:40}, ppm2:{min:null,max:null,nbins:40}, area:{min:null,max:null,nbins:40}, floor:{min:null,max:null,nbins:30}};
+  // Brush selection ranges per metric (set via drag)
+  const brush = {price:null, ppm2:null, area:null, floor:null}; // each: {xmin,xmax}
+
+  const isHttp = s=>/^https?:\/\//i.test(String(s||''));
+  const shuffle = (arr)=>{ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
+  const fmt = n=> new Intl.NumberFormat('ru-RU').format(Math.round(n));
+  const quantile=(arr,q)=>{ if(!arr.length) return NaN; const a=[...arr].sort((x,y)=>x-y); const p=(a.length-1)*q; const b=Math.floor(p); const r=p-b; return a[b]+(a[b+1]!==undefined?r*(a[b+1]-a[b]):0); };
+  const normalize = s => String(s||'').replace(/\u202f/g,' ').replace(/\u00A0/g,' ').trim();
+
+  function parseCSV(text){
+    const head = (text.split(/\r?\n/)[0]||'');
+    let delim = head.split(';').length > head.split(',').length ? ';' : ',';
+    const out=[]; let row=[]; let field=''; let q=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i];
+      if(ch==='"'){
+        if(q && text[i+1]==='"'){ field+='"'; i++; }
+        else { q=!q; }
+      } else if(!q && ch===delim){ row.push(field); field=''; }
+      else if(!q && (ch==='\n'||ch==='\r')){ if(ch==='\r'&&text[i+1]==='\n') i++; row.push(field); field=''; out.push(row.map(normalize)); row=[]; }
+      else { field+=ch; }
+    }
+    if(field!=='' || row.length){ row.push(field); out.push(row.map(normalize)); }
+    return out.filter(r=>r.some(c=>c && c!=='')).map(r=>r.map(c=>c.trim()));
+  }
+  const headerIndex=(headers,aliases)=>{ const norm=s=>s.toLowerCase().replace(/\s+/g,' ').trim(); const map=new Map(headers.map((h,i)=>[norm(h),i])); for(const a of aliases){ const idx=map.get(norm(a)); if(Number.isInteger(idx)) return idx; } return null; };
+
+  function parseAny(text){
+    text = text.replace(/\r\n/g,'\n');
+    const first = text.split('\n')[0]||'';
+    const looksCSV = /[,;].+/.test(first);
+    if(looksCSV){
+      const arr = parseCSV(text);
+      if(arr.length>=2){
+        const head = arr[0];
+        const data = arr.slice(1);
+        const iPrice = headerIndex(head, ['Price','Цена','Price (KZT)','Price KZT']);
+        const iArea  = headerIndex(head, ['Size (m²)','Size m2','Area','Площадь']);
+        const iFloor = headerIndex(head, ['Floor','Этаж']);
+        const iLink  = headerIndex(head, ['Link','URL','Url','Ссылка']);
+        const out=[];
+        for(const p of data){
+          const url = iLink!=null && p[iLink] ? p[iLink] : (p.find(isHttp)||'');
+          let price=null; if(iPrice!=null && p[iPrice]){ const digits=String(p[iPrice]).replace(/^от\s*/i,'').replace(/[^0-9]/g,''); if(digits.length>=5) price=Number(digits); }
+          let area=null; if(iArea!=null && p[iArea]){ const val=Number(String(p[iArea]).replace(',','.')); if(Number.isFinite(val)) area=val; }
+          let floor=null; if(iFloor!=null && p[iFloor]){ const raw=String(p[iFloor]); const m=raw.match(/(\d+)\s*\/\s*(\d+)/)||raw.match(/(\d+)/); if(m) floor=Number(m[1]); }
+          const ppm2 = (Number.isFinite(price)&&Number.isFinite(area)&&area>0)? price/area : null;
+          if(price!=null || area!=null || floor!=null) out.push({price, area, ppm2, floor, url});
+        }
+        if(out.length) return out;
+      }
+    }
+    // Fallback pipe TXT
+    const lines = text.split('\n').filter(Boolean);
+    const arrays = lines.map(ln=> ln.includes(' | ')? ln.split(' | ').map(normalize) : ln.split('|').map(normalize));
+    // detect price-like column among first 12
+    const counts={};
+    for(let k=0;k<Math.min(arrays.length,800);k++){ const parts=arrays[k]; const L=Math.min(12,parts.length); for(let i=0;i<L;i++){ const d=String(parts[i]).replace(/^от\s*/i,'').replace(/[^0-9]/g,''); if(d.length>=5) counts[i]=(counts[i]||0)+1; } }
+    let iPrice=null, best=-1; for(const [i,sc] of Object.entries(counts)){ const s=+sc; if(s>best){best=s; iPrice=+i;} }
+    const out=[];
+    for(const parts of arrays){
+      const line = parts.join(' | ');
+      const url = parts.find(isHttp) || (line.match(/https?:\/\/\S+/i)||[])[0] || '';
+      let price=null; if(iPrice!=null && parts[iPrice]){ const d=String(parts[iPrice]).replace(/^от\s*/i,'').replace(/[^0-9]/g,''); if(d.length>=5) price=Number(d); }
+      if(price==null){ const m=line.match(/(?:^|\s|\|)(?:от\s*)?([\d\s\u00A0\u202f]{5,})(?:\s*(?:₸|〒|KZT|тг|тенге))?(?=$|\s|\|)/i); if(m) price=Number(m[1].replace(/[^0-9]/g,'')); }
+      const ma = line.match(/([\d\.,]+)\s*(?:м2|м²|m2|sqm)/i); const area = ma? Number(ma[1].replace(',','.').replace(/\s/g,'')) : null;
+      const mf = line.match(/(\d+)\s*\/\s*(\d+)\s*(?:этаж|эт\.?)/i) || line.match(/(\d+)\s*(?:этаж|эт\.?)/i); const floor = mf? Number(mf[1]) : null;
+      const ppm2 = (Number.isFinite(price)&&Number.isFinite(area)&&area>0)? price/area : null;
+      if(price!=null || area!=null || floor!=null) out.push({price, area, ppm2, floor, url});
+    }
+    return out;
+  }
+
+  const statsLine = arr => { if(!arr.length) return 'n=0'; const s=arr.reduce((a,b)=>a+b,0), mean=s/arr.length, med=quantile(arr,0.5), p10=quantile(arr,0.1), p90=quantile(arr,0.9); const min=Math.min(...arr), max=Math.max(...arr); return `n=${arr.length}, min=${fmt(min)}, p10=${fmt(p10)}, med=${fmt(med)}, mean=${fmt(mean)}, p90=${fmt(p90)}, max=${fmt(max)}`; };
+
+  function rowPasses(r){
+    for(const key of Object.keys(filters)){
+      const f = filters[key];
+      const v = r[key];
+      if(f.min!=null && !(Number.isFinite(v) && v>=f.min)) return false;
+      if(f.max!=null && !(Number.isFinite(v) && v<=f.max)) return false;
+      const b = brush[key];
+      if(b && !(Number.isFinite(v) && v>=b.xmin && v<=b.xmax)) return false;
+    }
+    return true;
+  }
+  function splitSel(){ const sel=[], rest=[]; for(const r of rows){ (rowPasses(r)?sel:rest).push(r); } return {sel,rest}; }
+
+  function drawOne(key, title){
+    const {sel} = splitSel();
+    const xAll = rows.map(r=>r[key]).filter(Number.isFinite);
+    const xSel = sel.map(r=>r[key]).filter(Number.isFinite);
+    const nbins = filters[key].nbins || 40;
+    const data=[ {type:'histogram', x:xAll, nbinsx:nbins, name:'All', opacity:0.35}, {type:'histogram', x:xSel, nbinsx:nbins, name:'Selected', opacity:0.95} ];
+    const layout={paper_bgcolor:'#141417',plot_bgcolor:'#141417',font:{color:'#e9eaee'},margin:{l:50,r:20,t:20,b:50},barmode:'overlay',xaxis:{title:title,gridcolor:'#22232a',tickformat:',d'},yaxis:{title:'Count',gridcolor:'#22232a'}};
+    layout.dragmode='select'; layout.selectdirection='h';
+    Plotly.newPlot(charts[key], data, layout, {responsive:true,displaylogo:false}).then(()=>{
+      const el = document.getElementById(charts[key]);
+      el.on('plotly_selected', ev=>{
+        let xmin=null, xmax=null;
+        if(ev && ev.range && ev.range.x){ xmin=ev.range.x[0]; xmax=ev.range.x[1]; }
+        else if(ev && ev.points && ev.points.length){ const xs=ev.points.map(p=>p.x); xmin=Math.min(...xs); xmax=Math.max(...xs); }
+        brush[key] = (Number.isFinite(xmin) && Number.isFinite(xmax)) ? {xmin,xmax} : null;
+        drawAll();
+      });
+      el.on('plotly_doubleclick', ()=>{ brush[key]=null; drawAll(); });
+      document.getElementById(statsDiv[key]).innerHTML = `All: ${statsLine(xAll)}<br><b>Selected: ${statsLine(xSel)}</b>`;
+    });
+  }
+
+  function drawAll(){
+    drawOne('price','Price (₸)');
+    drawOne('ppm2','Price per m² (₸/m²)');
+    drawOne('area','Area (m²)');
+    drawOne('floor','Floor (current)');
+    const {sel} = splitSel();
+    let urls = [...new Set(sel.map(r=>r.url).filter(isHttp))];
+    if(urls.length > 5){
+      urls = shuffle(urls).slice(0,5);
+    }
+    document.getElementById('links').innerHTML = urls.length
+      ? urls.map((u, i)=>`<div><a href="${u}" target="_blank" rel="noopener">LINK_${i+1}</a></div>`).join('')
+      : '<em style="color:var(--muted)">No selection or links.</em>';
+    document.getElementById('log').textContent = `Active brushes: ${Object.entries(brush).filter(([k,v])=>!!v).map(([k,v])=>`${k}: ${Math.round(v.xmin)}–${Math.round(v.xmax)}`).join(' | ') || 'none'}`;
+  }
+
+  function computeAutos(){
+    const setAuto=(key)=>{ const arr=rows.map(r=>r[key]).filter(Number.isFinite); const min=arr.length?Math.min(...arr):null; const max=arr.length?Math.max(...arr):null; document.getElementById('min_'+key).value = min ?? ''; document.getElementById('max_'+key).value = max ?? ''; filters[key].min = min; filters[key].max = max; };
+    setAuto('price'); setAuto('ppm2'); setAuto('area'); setAuto('floor');
+  }
+
+  // Panel controls wiring (Apply / Reset)
+  document.addEventListener('click', (e)=>{
+    const applyKey = e.target.getAttribute('data-apply');
+    const resetKey = e.target.getAttribute('data-reset');
+    if(applyKey){
+      const nbins = Number(document.getElementById('bins_'+applyKey).value) || filters[applyKey].nbins;
+      const min = Number(document.getElementById('min_'+applyKey).value); const max = Number(document.getElementById('max_'+applyKey).value);
+      filters[applyKey].nbins = Math.max(1, Math.min(200, nbins));
+      filters[applyKey].min = Number.isFinite(min)? min : null;
+      filters[applyKey].max = Number.isFinite(max)? max : null;
+      drawAll();
+    }
+    if(resetKey){
+      document.getElementById('bins_'+resetKey).value = (resetKey==='floor'?30:40);
+      filters[resetKey].nbins = (resetKey==='floor'?30:40);
+      // clear min/max and brush
+      document.getElementById('min_'+resetKey).value = '';
+      document.getElementById('max_'+resetKey).value = '';
+      filters[resetKey].min = null; filters[resetKey].max = null;
+      brush[resetKey] = null;
+      drawAll();
+    }
+  });
+
+  async function loadText(text){
+    rows = parseAny(text);
+    if(!rows.length){ document.getElementById('log').textContent = 'Could not parse any rows. Ensure columns contain Price / Size (m²) / Floor / Link.'; return; }
+    document.getElementById('log').textContent = `Parsed ${rows.length} rows. Drag to select on ANY chart; double-click to clear that chart. Controls per panel apply ANDed with brushes.`;
+    computeAutos();
+    drawAll();
+  }
+
+  fileInput.addEventListener('change', async ()=>{ const f=fileInput.files?.[0]; if(!f) return; loadText(await f.text()); });
+  loadSampleBtn.addEventListener('click', async()=>{ try{ const r = await fetch('sample.csv'); if(!r.ok) throw new Error('sample not found'); loadText(await r.text()); } catch(e){ document.getElementById('log').textContent = 'Sample failed: '+(e.message||e); }});
+  clearAllBtn.addEventListener('click', ()=>{ rows=[]; for(const k of Object.keys(filters)){ filters[k]={min:null,max:null,nbins:(k==='floor'?30:40)}; brush[k]=null; } ['chart_price','chart_ppm2','chart_area','chart_floor'].forEach(id=>Plotly.purge(id)); document.getElementById('links').innerHTML=''; document.getElementById('log').textContent='Cleared.'; document.getElementById('file').value=''; });
+})();
+</script>
+</body>
+</html>

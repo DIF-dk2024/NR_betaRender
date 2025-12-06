@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Astana Flats Analyzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#050509;
+      --card:#101018;
+      --accent:#ffffff;
+      --accent-soft:rgba(255,255,255,0.06);
+      --text:#f5f5f5;
+      --muted:#9ca3af;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020308 55%, #000000 100%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .wrapper{
+      max-width:720px;
+      width:100%;
+    }
+    .card{
+      background:linear-gradient(145deg, rgba(255,255,255,0.06), rgba(0,0,0,0.85));
+      border-radius:24px;
+      padding:32px 28px;
+      box-shadow:0 30px 80px rgba(0,0,0,0.8);
+      border:1px solid rgba(255,255,255,0.07);
+      backdrop-filter:blur(18px);
+    }
+    h1{
+      font-size:32px;
+      line-height:1.1;
+      margin-bottom:12px;
+    }
+    .subtitle{
+      font-size:15px;
+      color:var(--muted);
+      margin-bottom:24px;
+    }
+    .list{
+      margin-bottom:28px;
+      font-size:14px;
+      color:var(--muted);
+    }
+    .list li{
+      margin-bottom:6px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:var(--accent-soft);
+      color:var(--muted);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.09em;
+      margin-bottom:14px;
+    }
+    .btn-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+    }
+    .btn-primary{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:11px 20px;
+      border-radius:999px;
+      border:none;
+      background:var(--accent);
+      color:#000;
+      font-weight:600;
+      font-size:14px;
+      text-decoration:none;
+      cursor:pointer;
+      transition:transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+      box-shadow:0 12px 30px rgba(0,0,0,0.7);
+    }
+    .btn-primary span.icon{
+      font-size:16px;
+      margin-left:6px;
+    }
+    .btn-primary:hover{
+      transform:translateY(-1px);
+      box-shadow:0 16px 40px rgba(0,0,0,0.9);
+      background:#f5f5f5;
+    }
+    .note{
+      font-size:12px;
+      color:var(--muted);
+    }
+    @media (max-width:600px){
+      .card{
+        padding:24px 20px;
+      }
+      h1{
+        font-size:26px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <div class="badge">Astana · Flats · Experimental</div>
+      <h1>Интерактивный анализ рынка квартир Астаны</h1>
+      <p class="subtitle">
+        Загрузите выгрузку с Krisha и посмотрите, как распределяются цена,
+        цена за м², площадь и этаж. Инструмент выделяет выборку и показывает ссылки на объявления.
+      </p>
+
+      <ul class="list">
+        <li>• Поддержка CSV в твоём стандартном формате (Row Number, Number of Rooms, Size (m2), …).</li>
+        <li>• Фильтры и «кисти» по цене, цене за м², площади и этажу.</li>
+        <li>• До 5 случайных ссылок на объявления из текущей выборки.</li>
+      </ul>
+
+      <div class="btn-row">
+        <!-- ВАЖНО: href должен совпадать с именем файла со старыми гистограммами -->
+        <a class="btn-primary" href="analyzer.html">
+          Открыть инструмент с гистограммами
+          <span class="icon">↗</span>
+        </a>
+        <span class="note">Работает локально в браузере. Данные никуда не отправляются.</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
