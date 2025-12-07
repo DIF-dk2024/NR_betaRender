@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Krisha Analyzer — Price / m² / Area</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root{
+      --bg:#050509;
+      --bg-alt:#0b0c12;
+      --card:#101018;
+      --accent:#ffffff;
+      --accent-soft:rgba(255,255,255,0.06);
+      --text:#f5f5f5;
+      --muted:#9ca3af;
+      --border:rgba(148,163,184,0.3);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+      background: radial-gradient(circle at top,#111827 0,#020308 55%,#000 100%);
+      color:var(--text);
+      min-height:100vh;
+      padding:16px;
+      display:flex;
+      justify-content:center;
+    }
+    .wrap{
+      width:100%;
+      max-width:1200px;
+    }
+    header{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    header h1{
+      font-size:20px;
+      font-weight:600;
+    }
+    header .subtitle{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    .controls input[type="file"]{
+      font-size:12px;
+      color:var(--muted);
+      max-width:170px;
+    }
+    .btn{
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--accent-soft);
+      padding:6px 10px;
+      font-size:12px;
+      color:var(--text);
+      cursor:pointer;
+      transition:background .15s,transform .08s;
+    }
+    .btn:hover{
+      background:rgba(255,255,255,0.12);
+      transform:translateY(-1px);
+    }
+
+    .card{
+      background:linear-gradient(145deg,rgba(15,23,42,0.95),rgba(3,7,18,0.98));
+      border-radius:18px;
+      border:1px solid rgba(148,163,184,0.4);
+      box-shadow:0 18px 40px rgba(0,0,0,0.9);
+      padding:14px 14px 12px;
+      margin-bottom:12px;
+    }
+
+    /* LINKS CARD */
+    #links-card h3{
+      font-size:14px;
+      margin-bottom:8px;
+    }
+    #links{
+      font-size:12px;
+      line-height:1.5;
+    }
+    #links a{
+      color:var(--accent);
+      text-decoration:none;
+    }
+    #links a:hover{
+      text-decoration:underline;
+    }
+    #log{
+      margin-top:6px;
+      font-size:11px;
+      color:var(--muted);
+      white-space:pre-wrap;
+    }
+
+    /* GRID OF PANELS */
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+    }
+    .panel{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .panel-controls{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:6px;
+      align-items:end;
+      font-size:11px;
+    }
+    .panel-controls strong{
+      grid-column:1/-1;
+      font-size:13px;
+      margin-bottom:2px;
+    }
+    .panel-controls label{
+      font-size:11px;
+      color:var(--muted);
+    }
+    .panel-controls input{
+      width:100%;
+      padding:4px 6px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.5);
+      background:rgba(15,23,42,0.9);
+      color:var(--text);
+      font-size:11px;
+    }
+    .panel-controls button{
+      padding:5px 8px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.7);
+      background:rgba(15,23,42,0.9);
+      color:var(--text);
+      font-size:11px;
+      cursor:pointer;
+    }
+    .panel-controls button:hover{
+      background:rgba(148,163,184,0.2);
+    }
+    .chart{
+      width:100%;
+      height:220px;
+    }
+    .stats{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:4px;
+      line-height:1.4;
+      white-space:pre-wrap;
+    }
+
+    @media (max-width:900px){
+      .grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+    }
+    @media (max-width:640px){
+      body{padding:12px;}
+      header h1{
+        font-size:18px;
+      }
+      .grid{
+        grid-template-columns:1fr;
+      }
+      .panel-controls{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+      }
+      .chart{
+        height:210px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Krisha Analyzer — Interactive</h1>
+      <div class="subtitle">Price · Price per m² · Area · sample.csv autoload</div>
+    </div>
+    <div class="controls">
+      <input id="file" type="file" accept=".csv,.txt" />
+      <button id="loadSample" class="btn">Load sample</button>
+      <button id="clearAll" class="btn">Clear all</button>
+    </div>
+  </header>
+
+  <!-- SELECTED LINKS ON TOP -->
+  <div class="card" id="links-card">
+    <h3>Selected links (5 random from current selection)</h3>
+    <div id="links"><em style="color:var(--muted)">No data loaded yet.</em></div>
+    <div id="log"></div>
+  </div>
+
+  <!-- PANELS GRID: PRICE, PPM2, AREA -->
+  <div class="grid">
+    <!-- PRICE -->
+    <div class="card panel">
+      <div class="panel-controls" data-key="price">
+        <strong>Price (₸)</strong>
+        <label>Bins</label><input id="bins_price" type="number" min="5" max="200" step="1" value="40" />
+        <label>Min</label><input id="min_price" type="number" placeholder="auto" />
+        <label>Max</label><input id="max_price" type="number" placeholder="auto" />
+        <button data-apply="price">Apply</button>
+        <button data-reset="price" title="Reset controls and brush for Price">Reset</button>
+      </div>
+      <div id="chart_price" class="chart"></div>
+      <div id="stats_price" class="stats"></div>
+    </div>
+
+    <!-- PPM2 -->
+    <div class="card panel">
+      <div class="panel-controls" data-key="ppm2">
+        <strong>Price per m² (₸/m²)</strong>
+        <label>Bins</label><input id="bins_ppm2" type="number" min="5" max="200" step="1" value="40" />
+        <label>Min</label><input id="min_ppm2" type="number" placeholder="auto" />
+        <label>Max</label><input id="max_ppm2" type="number" placeholder="auto" />
+        <button data-apply="ppm2">Apply</button>
+        <button data-reset="ppm2" title="Reset controls and brush for ₸/m²">Reset</button>
+      </div>
+      <div id="chart_ppm2" class="chart"></div>
+      <div id="stats_ppm2" class="stats"></div>
+    </div>
+
+    <!-- AREA -->
+    <div class="card panel">
+      <div class="panel-controls" data-key="area">
+        <strong>Area (m²)</strong>
+        <label>Bins</label><input id="bins_area" type="number" min="5" max="200" step="1" value="40" />
+        <label>Min</label><input id="min_area" type="number" placeholder="auto" />
+        <label>Max</label><input id="max_area" type="number" placeholder="auto" />
+        <button data-apply="area">Apply</button>
+        <button data-reset="area" title="Reset controls and brush for Area">Reset</button>
+      </div>
+      <div id="chart_area" class="chart"></div>
+      <div id="stats_area" class="stats"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const charts   = {price:'chart_price', ppm2:'chart_ppm2', area:'chart_area'};
+  const statsDiv = {price:'stats_price', ppm2:'stats_ppm2', area:'stats_area'};
+  const fileInput    = document.getElementById('file');
+  const loadSampleBtn= document.getElementById('loadSample');
+  const clearAllBtn  = document.getElementById('clearAll');
+
+  let rows = []; // {price, area, ppm2, url}
+
+  const filters = {
+    price:{min:null,max:null,nbins:40},
+    ppm2 :{min:null,max:null,nbins:40},
+    area :{min:null,max:null,nbins:40}
+  };
+  const brush = {price:null, ppm2:null, area:null}; // each: {xmin,xmax}
+
+  const isHttp   = s=>/^https?:\/\//i.test(String(s||''));
+  const shuffle  = (arr)=>{ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+  const fmt      = n=> new Intl.NumberFormat('ru-RU').format(Math.round(n));
+  const quantile = (arr,q)=>{
+    if(!arr.length) return NaN;
+    const a=[...arr].sort((x,y)=>x-y);
+    const p=(a.length-1)*q;
+    const b=Math.floor(p);
+    const e=p-b;
+    return e?a[b]*(1-e)+a[b+1]*e:a[b];
+  };
+
+  function parseAny(text){
+    const lines = text.trim().split(/\r?\n/);
+    if(!lines.length) return [];
+
+    // simple CSV
+    const delim = lines[0].includes(';') ? ';' : ',';
+    const rowsRaw = lines.map(l=>l.split(delim));
+
+    const headers = rowsRaw[0].map(h=>h.trim());
+    const lc = headers.map(h=>h.toLowerCase());
+
+    const idxPrice = lc.findIndex(h=>h.includes('price') || h.includes('цена'));
+    const idxArea  = lc.findIndex(h=>h.includes('size') || h.includes('area') || h.includes('м2') || h.includes('m2'));
+    const idxLink  = lc.findIndex(h=>h.includes('link') || h.includes('url') || h.includes('ссылка'));
+
+    if(idxPrice<0 && idxArea<0 && idxLink<0) return [];
+
+    const out = [];
+    for(let i=1;i<rowsRaw.length;i++){
+      const cols = rowsRaw[i];
+      if(!cols || cols.length===0) continue;
+      let price = NaN, area = NaN, floor = NaN, url = '';
+
+      if(idxPrice>=0 && cols[idxPrice]!=null){
+        const s = String(cols[idxPrice]).replace(/\s/g,'');
+        const num = s.match(/(\d+(?:[.,]\d+)?)/);
+        if(num) price = parseFloat(num[1].replace(',','.'));
+      }
+      if(idxArea>=0 && cols[idxArea]!=null){
+        const s = String(cols[idxArea]);
+        const m = s.match(/(\d+(?:[.,]\d+)?)/);
+        if(m) area = parseFloat(m[1].replace(',','.'));
+      }
+      if(idxLink>=0 && cols[idxLink]!=null){
+        const s = String(cols[idxLink]).trim();
+        if(isHttp(s)) url = s;
+      }else{
+        for(const c of cols){
+          const s = String(c).trim();
+          if(isHttp(s)){ url = s; break; }
+        }
+      }
+
+      const ppm2 = (Number.isFinite(price) && Number.isFinite(area) && area>0)
+        ? price/area
+        : NaN;
+
+      if(!Number.isFinite(price) && !Number.isFinite(area) && !url) continue;
+      out.push({price, area, ppm2, url});
+    }
+    return out;
+  }
+
+  function loadText(text){
+    rows = parseAny(text);
+    if(!rows.length){
+      document.getElementById('log').textContent = 'No rows parsed from file.';
+      Object.values(charts).forEach(id=>Plotly.purge(id));
+      document.getElementById('links').innerHTML = '<em style="color:var(--muted)">No selection or links.</em>';
+      return;
+    }
+    computeAutos();
+    drawAll();
+    document.getElementById('log').textContent = 'Loaded '+rows.length+' rows.';
+  }
+
+  function computeAutos(){
+    const setAuto = key=>{
+      const arr = rows.map(r=>r[key]).filter(Number.isFinite);
+      const min = arr.length? Math.min(...arr):null;
+      const max = arr.length? Math.max(...arr):null;
+      if(min!=null && max!=null){
+        filters[key].min = min;
+        filters[key].max = max;
+        const minInput = document.getElementById('min_'+key);
+        const maxInput = document.getElementById('max_'+key);
+        if(minInput) minInput.placeholder = fmt(min);
+        if(maxInput) maxInput.placeholder = fmt(max);
+      }
+    };
+    ['price','ppm2','area'].forEach(setAuto);
+  }
+
+  function rowPasses(r){
+    for(const key of ['price','ppm2','area']){
+      const v = r[key];
+      if(!Number.isFinite(v)) continue;
+      const f = filters[key];
+      if(f.min!=null && v < f.min) return false;
+      if(f.max!=null && v > f.max) return false;
+      const b = brush[key];
+      if(b){
+        if(v < b.xmin || v > b.xmax) return false;
+      }
+    }
+    return true;
+  }
+
+  function splitSel(){
+    const sel = [], rest = [];
+    for(const r of rows){
+      (rowPasses(r)? sel:rest).push(r);
+    }
+    return {sel,rest};
+  }
+
+  function computeStats(arr){
+    if(!arr.length) return 'n=0';
+    const n = arr.length;
+    const sorted = [...arr].sort((a,b)=>a-b);
+    const min = sorted[0];
+    const max = sorted[sorted.length-1];
+    const p10 = quantile(sorted,0.10);
+    const p50 = quantile(sorted,0.50);
+    const p90 = quantile(sorted,0.90);
+    const mean = sorted.reduce((s,x)=>s+x,0)/n;
+    return `n=${n}
+min=${fmt(min)}  p10=${fmt(p10)}
+median=${fmt(p50)}  mean=${fmt(mean)}
+p90=${fmt(p90)}  max=${fmt(max)}`;
+  }
+
+  function drawOne(key, title){
+    const chartId = charts[key];
+    const statsId = statsDiv[key];
+    const arrAll = rows.map(r=>r[key]).filter(Number.isFinite);
+    const {sel} = splitSel();
+    const arrSel = sel.map(r=>r[key]).filter(Number.isFinite);
+
+    const f = filters[key];
+    const nbins = f.nbins || 40;
+    let xmin = f.min, xmax = f.max;
+    if(xmin==null || xmax==null){
+      if(arrAll.length){
+        xmin = xmin==null? Math.min(...arrAll):xmin;
+        xmax = xmax==null? Math.max(...arrAll):xmax;
+      }
+    }
+
+    const traces = [
+      {
+        x:arrAll,
+        type:'histogram',
+        name:'All',
+        opacity:0.35,
+        nbinsx:nbins,
+        marker:{},
+        hovertemplate:'%{x:.0f}<extra>All</extra>'
+      },
+      {
+        x:arrSel,
+        type:'histogram',
+        name:'Selected',
+        opacity:0.85,
+        nbinsx:nbins,
+        marker:{},
+        hovertemplate:'%{x:.0f}<extra>Selected</extra>'
+      }
+    ];
+
+    const layout = {
+      paper_bgcolor:'rgba(0,0,0,0)',
+      plot_bgcolor:'rgba(15,23,42,1)',
+      margin:{l:40,r:10,t:18,b:30},
+      bargap:0.02,
+      legend:{orientation:'h',yanchor:'top',y:1.02,x:0},
+      dragmode:'select',
+      selectdirection:'h',
+      xaxis:{
+        title:'',
+        range:(xmin!=null && xmax!=null)?[xmin,xmax]:null,
+        showgrid:false,
+        zeroline:false,
+        tickfont:{size:10,color:'#9ca3af'}
+      },
+      yaxis:{
+        showgrid:false,
+        tickfont:{size:10,color:'#9ca3af'}
+      }
+    };
+
+    Plotly.newPlot(chartId,traces,layout,{displaylogo:false,responsive:true});
+
+    const statsLines = [];
+    statsLines.push('All:\n'+computeStats(arrAll));
+    statsLines.push('');
+    statsLines.push('Selected:\n'+computeStats(arrSel));
+    document.getElementById(statsId).textContent = statsLines.join('\n');
+
+    const gd = document.getElementById(chartId);
+    gd.on('plotly_selected',ev=>{
+      if(!ev || !ev.range || !ev.range.x){
+        brush[key] = null;
+      }else{
+        brush[key] = {xmin:ev.range.x[0], xmax:ev.range.x[1]};
+      }
+      drawAll();
+    });
+    gd.on('plotly_doubleclick',()=>{
+      brush[key] = null;
+      drawAll();
+    });
+  }
+
+  function drawAll(){
+    drawOne('price','Price (₸)');
+    drawOne('ppm2','Price per m² (₸/m²)');
+    drawOne('area','Area (m²)');
+
+    const {sel} = splitSel();
+    let urls = [...new Set(sel.map(r=>r.url).filter(isHttp))];
+    if(urls.length > 5){
+      urls = shuffle(urls).slice(0,5);
+    }
+    document.getElementById('links').innerHTML = urls.length
+      ? urls.map((u,i)=>`<div><a href="${u}" target="_blank" rel="noopener">LINK_${i+1}</a></div>`).join('')
+      : '<em style="color:var(--muted)">No selection or links.</em>';
+
+    const active = Object.entries(brush)
+      .filter(([k,v])=>v)
+      .map(([k,v])=>`${k}: ${Math.round(v.xmin)}–${Math.round(v.xmax)}`)
+      .join(' | ') || 'none';
+    document.getElementById('log').textContent = `Active brushes: ${active}`;
+  }
+
+  async function loadSample(){
+    try{
+      const r = await fetch('sample.csv');
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const text = await r.text();
+      loadText(text);
+      document.getElementById('log').textContent = 'Sample loaded.';
+    }catch(e){
+      document.getElementById('log').textContent = 'Sample failed: '+(e.message||e);
+    }
+  }
+
+  // Wire up controls
+  fileInput.addEventListener('change', e=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ev=> loadText(String(ev.target.result||''));
+    reader.readAsText(f);
+  });
+
+  loadSampleBtn.addEventListener('click', loadSample);
+
+  clearAllBtn.addEventListener('click', ()=>{
+    rows = [];
+    for(const k of Object.keys(filters)){
+      filters[k] = {min:null,max:null,nbins:40};
+      brush[k] = null;
+      const minI = document.getElementById('min_'+k);
+      const maxI = document.getElementById('max_'+k);
+      const binsI= document.getElementById('bins_'+k);
+      if(minI){ minI.value=''; minI.placeholder='auto'; }
+      if(maxI){ maxI.value=''; maxI.placeholder='auto'; }
+      if(binsI){ binsI.value='40'; }
+    }
+    Object.values(charts).forEach(id=>Plotly.purge(id));
+    document.getElementById('links').innerHTML = '<em style="color:var(--muted)">No selection or links.</em>';
+    document.getElementById('log').textContent = 'Cleared.';
+    document.getElementById('file').value = '';
+  });
+
+  // Auto-load sample on page open
+  loadSample();
+})();
+</script>
+</body>
+</html>
