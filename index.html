@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Astana Flats Analyzer · Numerical Research</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#050509;
+      --card:#101018;
+      --accent:#ffffff;
+      --accent-soft:rgba(255,255,255,0.06);
+      --accent-soft-strong:rgba(255,255,255,0.12);
+      --text:#f5f5f5;
+      --muted:#9ca3af;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020308 55%, #000000 100%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .wrapper{
+      max-width:780px;
+      width:100%;
+    }
+    .card{
+      background:linear-gradient(145deg, rgba(255,255,255,0.06), rgba(0,0,0,0.85));
+      border-radius:24px;
+      padding:28px 24px 26px;
+      box-shadow:0 30px 80px rgba(0,0,0,0.8);
+      border:1px solid rgba(255,255,255,0.07);
+      backdrop-filter:blur(18px);
+    }
+
+    .hero{
+      display:flex;
+      gap:18px;
+      align-items:center;
+      margin-bottom:18px;
+    }
+    .hero-logo{
+      flex:0 0 auto;
+    }
+    .hero-logo img{
+      width:88px;
+      height:88px;
+      border-radius:50%;
+      display:block;
+    }
+    .hero-text{
+      flex:1 1 auto;
+      min-width:0;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:var(--accent-soft);
+      color:var(--muted);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.09em;
+      margin-bottom:8px;
+    }
+    h1{
+      font-size:30px;
+      line-height:1.1;
+      margin-bottom:10px;
+    }
+    .subtitle{
+      font-size:15px;
+      color:var(--muted);
+      margin-bottom:0;
+    }
+
+    .list{
+      margin:18px 0 24px;
+      font-size:14px;
+      color:var(--muted);
+    }
+    .list li{ margin-bottom:6px; }
+
+    .btn-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .btn-primary,
+    .btn-secondary{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 18px;
+      border-radius:999px;
+      font-size:14px;
+      cursor:pointer;
+      text-decoration:none;
+      transition:transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+      white-space:nowrap;
+    }
+    .btn-primary{
+      border:none;
+      background:var(--accent);
+      color:#000;
+      font-weight:600;
+      box-shadow:0 12px 30px rgba(0,0,0,0.7);
+    }
+    .btn-primary span.icon{
+      font-size:16px;
+      margin-left:6px;
+    }
+    .btn-primary:hover{
+      transform:translateY(-1px);
+      box-shadow:0 16px 40px rgba(0,0,0,0.9);
+      background:#f5f5f5;
+    }
+    .btn-secondary{
+      border:1px solid rgba(255,255,255,0.4);
+      background:rgba(0,0,0,0.4);
+      color:var(--text);
+      font-weight:500;
+    }
+    .btn-secondary:hover{
+      border-color:var(--accent);
+      background:var(--accent-soft-strong);
+    }
+
+    .note{
+      font-size:12px;
+      color:var(--muted);
+      flex:1 1 auto;
+    }
+
+    .order-card{
+      margin-top:18px;
+      padding-top:16px;
+      border-top:1px solid rgba(255,255,255,0.12);
+    }
+    .order-title{
+      font-size:16px;
+      font-weight:600;
+      margin-bottom:10px;
+    }
+    .order-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px 14px;
+      margin-bottom:10px;
+    }
+    .order-field{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:13px;
+    }
+    .order-field label{
+      color:var(--muted);
+    }
+    .order-field input,
+    .order-field select,
+    .order-field textarea{
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,0.5);
+      background:rgba(0,0,0,0.4);
+      color:var(--text);
+      padding:7px 10px;
+      font-size:13px;
+      outline:none;
+    }
+    .order-field input:focus,
+    .order-field select:focus,
+    .order-field textarea:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px rgba(125,211,252,0.4);
+    }
+    .order-field textarea{
+      resize:vertical;
+      min-height:52px;
+    }
+    .order-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-top:4px;
+    }
+    .order-status{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .hidden{display:none;}
+
+    @media (max-width:700px){
+      body{padding:18px;}
+      .card{padding:22px 18px 20px;}
+      .hero{flex-direction:row; align-items:flex-start;}
+      .hero-logo img{width:72px;height:72px;}
+      h1{font-size:24px;}
+    }
+    @media (max-width:540px){
+      .hero{flex-direction:column; align-items:flex-start;}
+      .order-grid{grid-template-columns:1fr;}
+      .btn-row{align-items:flex-start;}
+      .note{flex-basis:100%; margin-top:2px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+
+      <div class="hero">
+        <div class="hero-logo">
+          <img src="logo.png" alt="Numerical Research logo">
+        </div>
+        <div class="hero-text">
+          <div class="badge">Astana · Flats · Experimental</div>
+          <h1>Интерактивный анализ рынка квартир Астаны</h1>
+          <p class="subtitle">
+            Посмотрите, как распределяются цена,
+            цена за м², площадь и этаж. Инструмент выделяет выборку и показывает ссылки на объявления.
+          </p>
+        </div>
+      </div>
+
+      <ul class="list">
+        <li>• Фильтрация и «кисти» по цене, цене за м² и площади.</li>
+        <li>• До 5 ссылок на объявления в бесплатной версии.</li>
+        <li>• Все ссылки при оформлении подписки — 500 тг / неделя.</li>
+        <li>Для оформления подписки — Telegram:
+          <a href="https://t.me/numresearch" target="_blank" rel="noopener">
+            @numresearch
+          </a>
+        </li>
+      </ul>
+
+      <div class="btn-row">
+        <a class="btn-primary" href="analyzer.html">
+          Открыть инструмент с гистограммами
+          <span class="icon">↗</span>
+        </a>
+
+        <button type="button" class="btn-secondary" id="orderBtn">
+          Заказать анализ
+        </button>
+
+        <!-- Новая кнопка: открыть PDF-отчёт с GitHub -->
+        <a class="btn-secondary"
+           href="https://github.com/DIF-dk2024/NR_betaRender/raw/main/reports/astana_report.pdf"
+           target="_blank" rel="noopener">
+          Посмотреть отчёт (PDF)
+        </a>
+
+        <span class="note">
+          Работает локально в браузере. Данные никуда не отправляются без вашего согласия.
+        </span>
+      </div>
+
+      <!-- ФОРМА ЗАКАЗА АНАЛИЗА -->
+      <div class="order-card hidden" id="orderCard">
+        <div class="order-title">Заявка на индивидуальный анализ</div>
+        <form id="orderForm">
+          <div class="order-grid">
+            <div class="order-field">
+              <label>Ваш бюджет (мин.)</label>
+              <input name="budget_min" type="text" placeholder="например 45 000 000 Т₸" />
+            </div>
+            <div class="order-field">
+              <label>Ваш бюджет (макс.)</label>
+              <input name="budget_max" type="text" placeholder="например 65 000 000 Т₸" />
+            </div>
+            <div class="order-field">
+              <label>Этаж (желательно)</label>
+              <input name="floor" type="text" placeholder="например 3–7 или любой" />
+            </div>
+            <div class="order-field">
+              <label>Количество комнат</label>
+              <input name="rooms" type="text" placeholder="например 2 или 2–3" />
+            </div>
+            <div class="order-field">
+              <label>Тип анализа</label>
+              <select name="analysis_type">
+                <option value="basic">Базовый</option>
+                <option value="deep">Углублённый</option>
+              </select>
+            </div>
+            <div class="order-field">
+              <label>Ваши контакты</label>
+              <input name="contact" type="text" placeholder="телеграм, WhatsApp или e-mail" required />
+            </div>
+          </div>
+          <div class="order-field" style="margin-top:4px;">
+            <label>Комментарий (необязательно)</label>
+            <textarea name="comment" placeholder="Город, район, дедлайн, особые пожелания..."></textarea>
+          </div>
+          <div class="order-actions">
+            <button type="submit" class="btn-primary" style="padding-inline:16px;">
+              Отправить заявку
+            </button>
+            <div class="order-status" id="orderStatus"></div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const orderBtn = document.getElementById('orderBtn');
+      const orderCard = document.getElementById('orderCard');
+      const orderForm = document.getElementById('orderForm');
+      const statusEl = document.getElementById('orderStatus');
+
+      orderBtn.addEventListener('click', () => {
+        orderCard.classList.toggle('hidden');
+        if (!orderCard.classList.contains('hidden')) {
+          orderCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      orderForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        statusEl.textContent = 'Отправка...';
+
+        const fd = new FormData(orderForm);
+        const payload = {
+          budget_min: fd.get('budget_min') || '',
+          budget_max: fd.get('budget_max') || '',
+          floor:      fd.get('floor')      || '',
+          rooms:      fd.get('rooms')      || '',
+          analysis_type: fd.get('analysis_type') || 'basic',
+          contact:    fd.get('contact')    || '',
+          comment:    fd.get('comment')    || ''
+        };
+
+        try {
+          const resp = await fetch('/api/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const data = await resp.json();
+          if (data.ok) {
+            statusEl.textContent = 'Заявка сохранена. Я свяжусь с вами по указанным контактам.';
+            orderForm.reset();
+          } else {
+            statusEl.textContent = 'Ошибка: ' + (data.error || 'не удалось сохранить заявку.');
+          }
+        } catch (err) {
+          statusEl.textContent = 'Сбой отправки: ' + err.message;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
